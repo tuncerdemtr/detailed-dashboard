@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Satış Performans Dashboard</title>
+  <!-- SheetJS (XLSX okuma) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Chart.js (grafikler) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --card-bg: #ffffff;
+      --border: #e0e0e0;
+      --text-main: #111111;
+      --text-muted: #666666;
+      --accent: #2f5b4a; /* zeytin-yeşili ton */
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+      padding: 24px;
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+      letter-spacing: 0.02em;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+    .upload-area {
+      border: 1px dashed var(--border);
+      background: #fafafa;
+      padding: 16px 20px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .upload-area label {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    input[type="file"] {
+      font-size: 13px;
+    }
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 960px) {
+      .filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 640px) {
+      .filters {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+    .filter-group {
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .filter-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+    .filter-group input[type="month"],
+    .filter-group select {
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      padding: 6px 8px;
+      font-size: 12px;
+      background: #fff;
+    }
+    .filter-group select[multiple] {
+      height: 80px;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.8fr) minmax(0, 1.2fr);
+      gap: 20px;
+      align-items: flex-start;
+    }
+    @media (max-width: 960px) {
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 16px 18px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.02);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .badge {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+      color: var(--text-muted);
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 1200px) {
+      .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 640px) {
+      .kpi-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+    .kpi-card {
+      background: var(--card-bg);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .kpi-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+    .kpi-value {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .kpi-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    canvas {
+      width: 100% !important;
+      height: 260px !important;
+    }
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    .table th,
+    .table td {
+      padding: 6px 4px;
+      text-align: left;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .table th {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+    .table tbody tr:nth-child(even) {
+      background: #fafafa;
+    }
+    .muted {
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+    .status {
+      font-size: 11px;
+      margin-top: 4px;
+      color: var(--text-muted);
+    }
+    .status span {
+      font-weight: 600;
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Satış Performans Dashboard</h1>
+  <p class="subtitle">
+    Aşağıya ham satış verisi Excel (xlsx) dosyanı yükle; metrikler, grafikler ve tablolar filtrelere göre otomatik hesaplansın.
+  </p>
+
+  <div class="upload-area">
+    <label><strong>Dosya:</strong> İlgili sayfada sütun başlıkları şu şekilde olmalı:
+      <code>Net Total</code>, <code>Alış Total</code>, <code>Kanal</code>, <code>Kullanım</code>, 
+      <code>Proje_Türü</code>, <code>Organizasyon_Tipi</code>,
+      <code>Proje_Durumu</code>, <code>Kapak_Programı</code>,
+      <code>İlk_Oluşturma</code>, <code>Kesinleşen_Sipariş_Tarihi</code>, 
+      <code>Siparişe_Döndü_Mü</code> vb.
+    </label>
+    <input type="file" id="fileInput" accept=".xlsx,.xls" />
+  </div>
+
+  <div class="filters">
+    <div class="filter-group">
+      <div class="filter-label">Başlangıç (Ay/Yıl)</div>
+      <input type="month" id="startMonth" />
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Bitiş (Ay/Yıl)</div>
+      <input type="month" id="endMonth" />
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Kullanım (K sütunu)</div>
+      <select id="usageFilter" multiple></select>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Kanal (O sütunu)</div>
+      <select id="channelFilter" multiple></select>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Proje Durumu (S sütunu)</div>
+      <select id="projectStatusFilter" multiple></select>
+    </div>
+  </div>
+
+  <div class="status" id="statusText">
+    Henüz dosya yüklenmedi.
+  </div>
+
+  <div class="kpi-grid" id="kpiGrid">
+    <!-- KPI kartları JS ile doldurulacak -->
+  </div>
+
+  <div class="layout">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Aylık Ciro Trend</div>
+        <div class="badge">Net Total</div>
+      </div>
+      <canvas id="monthlyRevenueChart"></canvas>
+      <p class="muted">
+        Tarih için öncelik: <strong>Kesinleşen_Sipariş_Tarihi</strong>, boş ise <strong>İlk_Oluşturma</strong> kullanılır.
+        Filtreler üstteki alanlardan uygulanır.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Kanal Bazlı Ciro</div>
+        <div class="badge">Kanal</div>
+      </div>
+      <canvas id="channelRevenueChart"></canvas>
+      <p class="muted">Kanal sütunu üzerinden Net Total toplamı (aktif filtrelere göre).</p>
+    </div>
+  </div>
+
+  <div class="layout" style="margin-top: 20px;">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Kullanım Tipi Bazlı Ciro & Kâr</div>
+        <div class="badge">Kullanım</div>
+      </div>
+      <table class="table" id="usageTable">
+        <!-- JS ile doldurulacak -->
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Proje Türü Bazlı Ciro</div>
+        <div class="badge">Proje_Türü</div>
+      </div>
+      <table class="table" id="projectTypeTable">
+        <!-- JS ile doldurulacak -->
+      </table>
+    </div>
+  </div>
+
+  <!-- Organizasyon Tipi & Kapak Programı kârlılık tabloları -->
+  <div class="layout" style="margin-top: 20px;">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Organizasyon Tipi Bazlı Kârlılık</div>
+        <div class="badge">Organizasyon_Tipi</div>
+      </div>
+      <table class="table" id="organizationTypeTable">
+        <!-- JS ile doldurulacak -->
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Kapak Programı Bazlı Kârlılık</div>
+        <div class="badge">Kapak_Programı (U)</div>
+      </div>
+      <table class="table" id="kapakProgramTable">
+        <!-- JS ile doldurulacak -->
+      </table>
+    </div>
+  </div>
+
+  <!-- Dönüşüm performansı tabloları -->
+  <div class="layout" style="margin-top: 20px;">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Dönüşüm – Kullanım Bazlı</div>
+        <div class="badge">Kullanım</div>
+      </div>
+      <table class="table" id="conversionUsageTable">
+        <!-- JS ile doldurulacak -->
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Dönüşüm – Kanal Bazlı</div>
+        <div class="badge">Kanal</div>
+      </div>
+      <table class="table" id="conversionChannelTable">
+        <!-- JS ile doldurulacak -->
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let rawData = [];
+    let monthlyRevenueChart = null;
+    let channelRevenueChart = null;
+
+    const fileInput = document.getElementById('fileInput');
+    const statusText = document.getElementById('statusText');
+    const kpiGrid = document.getElementById('kpiGrid');
+    const usageTable = document.getElementById('usageTable');
+    const projectTypeTable = document.getElementById('projectTypeTable');
+    const organizationTypeTable = document.getElementById('organizationTypeTable');
+    const kapakProgramTable = document.getElementById('kapakProgramTable');
+    const conversionUsageTable = document.getElementById('conversionUsageTable');
+    const conversionChannelTable = document.getElementById('conversionChannelTable');
+
+    const startMonthInput = document.getElementById('startMonth');
+    const endMonthInput = document.getElementById('endMonth');
+    const usageFilter = document.getElementById('usageFilter');
+    const channelFilter = document.getElementById('channelFilter');
+    const projectStatusFilter = document.getElementById('projectStatusFilter');
+
+    fileInput.addEventListener('change', handleFile, false);
+    startMonthInput.addEventListener('change', () => processAndRender());
+    endMonthInput.addEventListener('change', () => processAndRender());
+    usageFilter.addEventListener('change', () => processAndRender());
+    channelFilter.addEventListener('change', () => processAndRender());
+    projectStatusFilter.addEventListener('change', () => processAndRender());
+
+    function handleFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          rawData = XLSX.utils.sheet_to_json(worksheet, { defval: null });
+          statusText.innerHTML = `Yüklenen dosya: <span>${file.name}</span> – Satır sayısı: <span>${rawData.length}</span>`;
+          populateFilterOptions();
+          processAndRender();
+        } catch (err) {
+          console.error(err);
+          statusText.textContent = "Dosya okunurken hata oluştu. Sütun isimlerini ve formatı kontrol et.";
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function populateFilterOptions() {
+      const usageSet = new Set();
+      const channelSet = new Set();
+      const projectStatusSet = new Set();
+
+      rawData.forEach(row => {
+        if (row['Kullanım']) usageSet.add(String(row['Kullanım']).trim());
+        if (row['Kanal']) channelSet.add(String(row['Kanal']).trim());
+        if (row['Proje_Durumu']) projectStatusSet.add(String(row['Proje_Durumu']).trim());
+      });
+
+      usageFilter.innerHTML = '';
+      channelFilter.innerHTML = '';
+      projectStatusFilter.innerHTML = '';
+
+      Array.from(usageSet).sort().forEach(val => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = val;
+        usageFilter.appendChild(opt);
+      });
+
+      Array.from(channelSet).sort().forEach(val => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = val;
+        channelFilter.appendChild(opt);
+      });
+
+      Array.from(projectStatusSet).sort().forEach(val => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = val;
+        projectStatusFilter.appendChild(opt);
+      });
+    }
+
+    function parseNumber(val) {
+      if (val === null || val === undefined) return 0;
+      if (typeof val === 'number') return val;
+      if (typeof val === 'string') {
+        let s = val.trim();
+        if (!s) return 0;
+        s = s.replace(/\./g, '').replace(',', '.');
+        const num = parseFloat(s);
+        return isNaN(num) ? 0 : num;
+      }
+      return 0;
+    }
+
+    function normalizeYes(val) {
+      if (!val) return false;
+      const s = String(val).trim().toLowerCase();
+      return ['evet', 'yes', 'y', '1', 'true'].includes(s);
+    }
+
+    function getDate(val) {
+      if (!val) return null;
+      if (val instanceof Date) return val;
+      if (typeof val === 'number') {
+        const epoch = new Date(Date.UTC(1899, 11, 30));
+        const d = new Date(epoch.getTime() + val * 86400000);
+        return d;
+      }
+      const d = new Date(val);
+      if (isNaN(d.getTime())) return null;
+      return d;
+    }
+
+    function getEffectiveDate(row) {
+      const finalized = getDate(row['Kesinleşen_Sipariş_Tarihi']);
+      const created = getDate(row['İlk_Oluşturma']);
+      return finalized || created || null;
+    }
+
+    function getMonthKey(row) {
+      const d = getEffectiveDate(row);
+      if (!d) return null;
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      return `${year}-${month}`;
+    }
+
+    function formatCurrency(val) {
+      return val.toLocaleString('tr-TR', {
+        style: 'currency',
+        currency: 'TRY',
+        maximumFractionDigits: 0
+      });
+    }
+
+    function formatPercent(val) {
+      if (!isFinite(val)) return '–';
+      return (val * 100).toFixed(1) + ' %';
+    }
+
+    function getSelectedValues(selectEl) {
+      const values = [];
+      for (const opt of selectEl.options) {
+        if (opt.selected) values.push(opt.value);
+      }
+      return values;
+    }
+
+    function getFilteredData() {
+      if (!rawData || rawData.length === 0) return [];
+
+      const startVal = startMonthInput.value; // "YYYY-MM"
+      const endVal = endMonthInput.value;
+
+      let startYM = null;
+      let endYM = null;
+
+      if (startVal) {
+        const [y, m] = startVal.split('-').map(Number);
+        startYM = y * 100 + m;
+      }
+      if (endVal) {
+        const [y, m] = endVal.split('-').map(Number);
+        endYM = y * 100 + m;
+      }
+
+      const selectedUsage = getSelectedValues(usageFilter);
+      const selectedChannel = getSelectedValues(channelFilter);
+      const selectedProjectStatus = getSelectedValues(projectStatusFilter);
+
+      return rawData.filter(row => {
+        const d = getEffectiveDate(row);
+        if (d) {
+          const ym = d.getFullYear() * 100 + (d.getMonth() + 1);
+          if (startYM !== null && ym < startYM) return false;
+          if (endYM !== null && ym > endYM) return false;
+        } else {
+          if (startYM !== null || endYM !== null) return false;
+        }
+
+        if (selectedUsage.length > 0) {
+          const usage = row['Kullanım'] ? String(row['Kullanım']).trim() : '';
+          if (!selectedUsage.includes(usage)) return false;
+        }
+
+        if (selectedChannel.length > 0) {
+          const channel = row['Kanal'] ? String(row['Kanal']).trim() : '';
+          if (!selectedChannel.includes(channel)) return false;
+        }
+
+        if (selectedProjectStatus.length > 0) {
+          const pStatus = row['Proje_Durumu'] ? String(row['Proje_Durumu']).trim() : '';
+          if (!selectedProjectStatus.includes(pStatus)) return false;
+        }
+
+        return true;
+      });
+    }
+
+    function processAndRender() {
+      const data = getFilteredData();
+      if (!data || data.length === 0) {
+        kpiGrid.innerHTML = '';
+        usageTable.innerHTML = '';
+        projectTypeTable.innerHTML = '';
+        organizationTypeTable.innerHTML = '';
+        kapakProgramTable.innerHTML = '';
+        conversionUsageTable.innerHTML = '';
+        conversionChannelTable.innerHTML = '';
+        if (monthlyRevenueChart) monthlyRevenueChart.destroy();
+        if (channelRevenueChart) channelRevenueChart.destroy();
+        statusText.innerHTML = 'Aktif filtrelerle gösterilecek satır bulunamadı.';
+        return;
+      }
+
+      let totalRevenue = 0;
+      let totalCost = 0;
+      let orderCount = 0;
+      let offerCount = 0;
+      let rowsWithMoney = 0;
+
+      const byMonth = {};
+      const byChannel = {};
+      const byUsage = {};
+      const byProjectType = {};
+      const byOrganizationType = {};
+      const byKapakProgram = {};
+
+      data.forEach(row => {
+        const revenue = parseNumber(row['Net Total']);
+        const cost = parseNumber(row['Alış Total']);
+        const isOrder = normalizeYes(row['Siparişe_Döndü_Mü']);
+
+        if (revenue !== 0 || cost !== 0) {
+          rowsWithMoney++;
+        }
+
+        totalRevenue += revenue;
+        totalCost += cost;
+        if (isOrder) {
+          orderCount++;
+        } else {
+          offerCount++;
+        }
+
+        const monthKey = getMonthKey(row);
+        if (monthKey) {
+          if (!byMonth[monthKey]) {
+            byMonth[monthKey] = { revenue: 0, orders: 0 };
+          }
+          byMonth[monthKey].revenue += revenue;
+          if (isOrder) byMonth[monthKey].orders++;
+        }
+
+        const channel = row['Kanal'] ? String(row['Kanal']).trim() : 'Belirsiz';
+        if (!byChannel[channel]) {
+          byChannel[channel] = { revenue: 0, orders: 0, total: 0 };
+        }
+        byChannel[channel].revenue += revenue;
+        byChannel[channel].total++;
+        if (isOrder) byChannel[channel].orders++;
+
+        const usage = row['Kullanım'] ? String(row['Kullanım']).trim() : 'Belirsiz';
+        if (!byUsage[usage]) {
+          byUsage[usage] = { revenue: 0, cost: 0, orders: 0, total: 0 };
+        }
+        byUsage[usage].revenue += revenue;
+        byUsage[usage].cost += cost;
+        byUsage[usage].total++;
+        if (isOrder) byUsage[usage].orders++;
+
+        const pType = row['Proje_Türü'] ? String(row['Proje_Türü']).trim() : 'Belirsiz';
+        if (!byProjectType[pType]) {
+          byProjectType[pType] = { revenue: 0, orders: 0, total: 0 };
+        }
+        byProjectType[pType].revenue += revenue;
+        byProjectType[pType].total++;
+        if (isOrder) byProjectType[pType].orders++;
+
+        const orgType = row['Organizasyon_Tipi'] ? String(row['Organizasyon_Tipi']).trim() : 'Belirsiz';
+        if (!byOrganizationType[orgType]) {
+          byOrganizationType[orgType] = { revenue: 0, cost: 0, orders: 0, total: 0 };
+        }
+        byOrganizationType[orgType].revenue += revenue;
+        byOrganizationType[orgType].cost += cost;
+        byOrganizationType[orgType].total++;
+        if (isOrder) byOrganizationType[orgType].orders++;
+
+        const kapak = row['Kapak_Programı'] ? String(row['Kapak_Programı']).trim() : 'Belirsiz';
+        if (!byKapakProgram[kapak]) {
+          byKapakProgram[kapak] = { revenue: 0, cost: 0, orders: 0, total: 0 };
+        }
+        byKapakProgram[kapak].revenue += revenue;
+        byKapakProgram[kapak].cost += cost;
+        byKapakProgram[kapak].total++;
+        if (isOrder) byKapakProgram[kapak].orders++;
+      });
+
+      const totalProfit = totalRevenue - totalCost;
+      const grossMargin = totalRevenue > 0 ? totalProfit / totalRevenue : 0;
+      const avgOrderValue = orderCount > 0 ? totalRevenue / orderCount : 0;
+      const conversionRate = (orderCount + offerCount) > 0 ? orderCount / (orderCount + offerCount) : 0;
+
+      renderKPIs({
+        totalRevenue,
+        totalCost,
+        totalProfit,
+        grossMargin,
+        orderCount,
+        offerCount,
+        avgOrderValue,
+        conversionRate,
+        rowsWithMoney
+      });
+
+      renderMonthlyRevenueChart(byMonth);
+      renderChannelRevenueChart(byChannel);
+      renderUsageTable(byUsage);
+      renderProjectTypeTable(byProjectType);
+      renderOrganizationTypeTable(byOrganizationType);
+      renderKapakProgramTable(byKapakProgram);
+      renderConversionUsageTable(byUsage);
+      renderConversionChannelTable(byChannel);
+    }
+
+    function renderKPIs(m) {
+      kpiGrid.innerHTML = '';
+
+      const items = [
+        {
+          label: 'Toplam Ciro',
+          value: formatCurrency(m.totalRevenue),
+          sub: `Satır sayısı (parasal): ${m.rowsWithMoney}`
+        },
+        {
+          label: 'Toplam Brüt Kâr',
+          value: formatCurrency(m.totalProfit),
+          sub: `Brüt marj: ${formatPercent(m.grossMargin)}`
+        },
+        {
+          label: 'Sipariş Adedi',
+          value: m.orderCount.toLocaleString('tr-TR'),
+          sub: `Teklif + Sipariş: ${(m.orderCount + m.offerCount).toLocaleString('tr-TR')}`
+        },
+        {
+          label: 'Ort. Sipariş Tutarı',
+          value: m.avgOrderValue ? formatCurrency(m.avgOrderValue) : '–',
+          sub: `Dönüşüm oranı: ${formatPercent(m.conversionRate)}`
+        }
+      ];
+
+      items.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'kpi-card';
+        div.innerHTML = `
+          <div class="kpi-label">${item.label}</div>
+          <div class="kpi-value">${item.value}</div>
+          <div class="kpi-sub">${item.sub}</div>
+        `;
+        kpiGrid.appendChild(div);
+      });
+    }
+
+    function renderMonthlyRevenueChart(byMonth) {
+      const ctx = document.getElementById('monthlyRevenueChart').getContext('2d');
+      const keys = Object.keys(byMonth).sort();
+      const labels = keys;
+      const dataRevenue = keys.map(k => byMonth[k].revenue);
+
+      if (monthlyRevenueChart) {
+        monthlyRevenueChart.destroy();
+      }
+
+      monthlyRevenueChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Net Total',
+            data: dataRevenue
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              ticks: {
+                callback: function (value) {
+                  return value.toLocaleString('tr-TR');
+                }
+              }
+            }
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  return ' Ciro: ' + formatCurrency(context.parsed.y);
+                }
+              }
+            },
+            legend: {
+              display: false
+            }
+          }
+        }
+      });
+    }
+
+    function renderChannelRevenueChart(byChannel) {
+      const ctx = document.getElementById('channelRevenueChart').getContext('2d');
+      const entries = Object.entries(byChannel)
+        .sort((a, b) => b[1].revenue - a[1].revenue)
+        .slice(0, 10);
+
+      const labels = entries.map(e => e[0]);
+      const dataRevenue = entries.map(e => e[1].revenue);
+
+      if (channelRevenueChart) {
+        channelRevenueChart.destroy();
+      }
+
+      channelRevenueChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Net Total',
+            data: dataRevenue
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              ticks: {
+                callback: function (value) {
+                  return value.toLocaleString('tr-TR');
+                }
+              }
+            }
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  return ' Ciro: ' + formatCurrency(context.parsed.x);
+                }
+              }
+            },
+            legend: {
+              display: false
+            }
+          }
+        }
+      });
+    }
+
+    function renderUsageTable(byUsage) {
+      const entries = Object.entries(byUsage)
+        .sort((a, b) => b[1].revenue - a[1].revenue);
+
+      let html = `
+        <thead>
+          <tr>
+            <th>Kullanım</th>
+            <th>Ciro</th>
+            <th>Brüt Kâr</th>
+            <th>Brüt Marj</th>
+            <th>Sipariş Adedi</th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
+
+      entries.forEach(([usage, obj]) => {
+        const profit = obj.revenue - obj.cost;
+        const margin = obj.revenue > 0 ? profit / obj.revenue : 0;
+        html += `
+          <tr>
+            <td>${usage}</td>
+            <td>${formatCurrency(obj.revenue)}</td>
+            <td>${formatCurrency(profit)}</td>
+            <td>${formatPercent(margin)}</td>
+            <td>${obj.orders.toLocaleString('tr-TR')}</td>
+          </tr>
+        `;
+      });
+
+      html += '</tbody>';
+      usageTable.innerHTML = html;
+    }
+
+    function renderProjectTypeTable(byProjectType) {
+      const entries = Object.entries(byProjectType)
+        .sort((a, b) => b[1].revenue - a[1].revenue);
+
+      let html = `
+        <thead>
+          <tr>
+            <th>Proje Türü</th>
+            <th>Ciro</th>
+            <th>Sipariş Adedi</th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
+
+      entries.forEach(([type, obj]) => {
+        html += `
+          <tr>
+            <td>${type}</td>
+            <td>${formatCurrency(obj.revenue)}</td>
+            <td>${obj.orders.toLocaleString('tr-TR')}</td>
+          </tr>
+        `;
+      });
+
+      html += '</tbody>';
+      projectTypeTable.innerHTML = html;
+    }
+
+    function renderOrganizationTypeTable(byOrganizationType) {
+      const entries = Object.entries(byOrganizationType)
+        .sort((a, b) => b[1].revenue - a[1].revenue);
+
+      let html = `
+        <thead>
+          <tr>
+            <th>Organizasyon Tipi</th>
+            <th>Ciro</th>
+            <th>Brüt Kâr</th>
+            <th>Brüt Marj</th>
+            <th>Sipariş Adedi</th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
+
+      entries.forEach(([orgType, obj]) => {
+        const profit = obj.revenue - obj.cost;
+        const margin = obj.revenue > 0 ? profit / obj.revenue : 0;
+        html += `
+          <tr>
+            <td>${orgType}</td>
+            <td>${formatCurrency(obj.revenue)}</td>
+            <td>${formatCurrency(profit)}</td>
+            <td>${formatPercent(margin)}</td>
+            <td>${obj.orders.toLocaleString('tr-TR')}</td>
+          </tr>
+        `;
+      });
+
+      html += '</tbody>';
+      organizationTypeTable.innerHTML = html;
+    }
+
+    function renderKapakProgramTable(byKapakProgram) {
+      const entries = Object.entries(byKapakProgram)
+        .sort((a, b) => b[1].revenue - a[1].revenue);
+
+      let html = `
+        <thead>
+          <tr>
+            <th>Kapak Programı</th>
+            <th>Ciro</th>
+            <th>Brüt Kâr</th>
+            <th>Brüt Marj</th>
+            <th>Sipariş Adedi</th>
+            <th>Dönüşüm Oranı</th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
+
+      entries.forEach(([kp, obj]) => {
+        const profit = obj.revenue - obj.cost;
+        const margin = obj.revenue > 0 ? profit / obj.revenue : 0;
+        const conv = obj.total > 0 ? obj.orders / obj.total : 0;
+        html += `
+          <tr>
+            <td>${kp}</td>
+            <td>${formatCurrency(obj.revenue)}</td>
+            <td>${formatCurrency(profit)}</td>
+            <td>${formatPercent(margin)}</td>
+            <td>${obj.orders.toLocaleString('tr-TR')}</td>
+            <td>${formatPercent(conv)}</td>
+          </tr>
+        `;
+      });
+
+      html += '</tbody>';
+      kapakProgramTable.innerHTML = html;
+    }
+
+    function renderConversionUsageTable(byUsage) {
+      const entries = Object.entries(byUsage)
+        .sort((a, b) => {
+          const convA = a[1].total > 0 ? a[1].orders / a[1].total : 0;
+          const convB = b[1].total > 0 ? b[1].orders / b[1].total : 0;
+          return convB - convA;
+        });
+
+      let html = `
+        <thead>
+          <tr>
+            <th>Kullanım</th>
+            <th>Teklif + Sipariş</th>
+            <th>Sipariş</th>
+            <th>Dönüşüm Oranı</th>
+            <th>Ort. Sipariş Tutarı</th>
+            <th>Ciro</th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
+
+      entries.forEach(([usage, obj]) => {
+        const conv = obj.total > 0 ? obj.orders / obj.total : 0;
+        const avgOrder = obj.orders > 0 ? obj.revenue / obj.orders : 0;
+        html += `
+          <tr>
+            <td>${usage}</td>
+            <td>${obj.total.toLocaleString('tr-TR')}</td>
+            <td>${obj.orders.toLocaleString('tr-TR')}</td>
+            <td>${formatPercent(conv)}</td>
+            <td>${avgOrder ? formatCurrency(avgOrder) : '–'}</td>
+            <td>${formatCurrency(obj.revenue)}</td>
+          </tr>
+        `;
+      });
+
+      html += '</tbody>';
+      conversionUsageTable.innerHTML = html;
+    }
+
+    function renderConversionChannelTable(byChannel) {
+      const entries = Object.entries(byChannel)
+        .sort((a, b) => {
+          const convA = a[1].total > 0 ? a[1].orders / a[1].total : 0;
+          const convB = b[1].total > 0 ? b[1].orders / b[1].total : 0;
+          return convB - convA;
+        });
+
+      let html = `
+        <thead>
+          <tr>
+            <th>Kanal</th>
+            <th>Teklif + Sipariş</th>
+            <th>Sipariş</th>
+            <th>Dönüşüm Oranı</th>
+            <th>Ort. Sipariş Tutarı</th>
+            <th>Ciro</th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
+
+      entries.forEach(([channel, obj]) => {
+        const conv = obj.total > 0 ? obj.orders / obj.total : 0;
+        const avgOrder = obj.orders > 0 ? obj.revenue / obj.orders : 0;
+        html += `
+          <tr>
+            <td>${channel}</td>
+            <td>${obj.total.toLocaleString('tr-TR')}</td>
+            <td>${obj.orders.toLocaleString('tr-TR')}</td>
+            <td>${formatPercent(conv)}</td>
+            <td>${avgOrder ? formatCurrency(avgOrder) : '–'}</td>
+            <td>${formatCurrency(obj.revenue)}</td>
+          </tr>
+        `;
+      });
+
+      html += '</tbody>';
+      conversionChannelTable.innerHTML = html;
+    }
+  </script>
+</body>
+</html>
