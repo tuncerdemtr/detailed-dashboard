@@ -100,15 +100,27 @@
       padding: 24px;
       border-radius: 30px;
       box-shadow: -18px -18px 30px var(--shadow-light), 18px 18px 35px var(--shadow-dark);
+      align-items: end;
     }
     @media (max-width: 960px) {
       .filters {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
+      .filter-actions {
+        grid-column: span 2;
+        justify-content: flex-start;
+      }
     }
     @media (max-width: 640px) {
       .filters {
         grid-template-columns: minmax(0, 1fr);
+      }
+      .filter-actions {
+        grid-column: span 1;
+      }
+      .clear-filters-btn {
+        width: 100%;
+        text-align: center;
       }
     }
     .filter-group {
@@ -116,6 +128,31 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
+    }
+    .filter-actions {
+      grid-column: span 4;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .clear-filters-btn {
+      border: none;
+      border-radius: 16px;
+      padding: 12px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      background: var(--accent);
+      box-shadow: -6px -6px 16px rgba(255, 255, 255, 0.3), 6px 6px 18px rgba(163, 177, 198, 0.4);
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .clear-filters-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: -10px -10px 18px rgba(255, 255, 255, 0.5), 10px 10px 20px rgba(163, 177, 198, 0.5);
+    }
+    .clear-filters-btn:active {
+      transform: translateY(0);
+      box-shadow: inset 4px 4px 10px rgba(91, 111, 214, 0.35), inset -4px -4px 10px rgba(255, 255, 255, 0.6);
     }
     .filter-label {
       font-size: 11px;
@@ -184,6 +221,9 @@
       grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
       gap: 24px;
       align-items: flex-start;
+    }
+    .layout-full {
+      grid-template-columns: minmax(0, 1fr);
     }
     @media (max-width: 960px) {
       .layout {
@@ -287,6 +327,31 @@
     .table tbody tr:nth-child(even) {
       background: rgba(91, 111, 214, 0.06);
     }
+    .table-scroll {
+      --visible-rows: 6;
+      --table-row-height: 48px;
+      --table-header-height: 52px;
+      overflow-y: auto;
+      border-radius: 24px;
+      box-shadow: inset -8px -8px 16px rgba(255, 255, 255, 0.65), inset 8px 8px 18px rgba(163, 177, 198, 0.35);
+      padding: 4px;
+      margin-top: 12px;
+      max-height: calc(var(--table-header-height) + var(--table-row-height) * var(--visible-rows));
+    }
+    .table-scroll.rows-5 {
+      --visible-rows: 5;
+    }
+    .table-scroll.rows-10 {
+      --visible-rows: 10;
+    }
+    .table-scroll .table {
+      margin-top: 0;
+    }
+    .table-scroll thead th {
+      position: sticky;
+      top: 0;
+      background: var(--card-bg);
+    }
     .muted {
       color: var(--text-muted);
       font-size: 13px;
@@ -318,10 +383,10 @@
 
   <div class="upload-area">
     <label><strong>Dosya:</strong> İlgili sayfada sütun başlıkları şu şekilde olmalı:
-      <code>Net Total</code>, <code>Alış Total</code>, <code>Kanal</code>, <code>Kullanım</code>, 
-      <code>Proje_Türü</code>, <code>Organizasyon_Tipi</code>,
+      <code>Net Total</code>, <code>Alış Total</code>, <code>Kanal</code>, <code>Kullanım</code>,
+      <code>Proje_Türü</code>, <code>Organizasyon</code>,
       <code>Proje_Durumu</code>, <code>Kapak_Programı</code>,
-      <code>İlk_Oluşturma</code>, <code>Kesinleşen_Sipariş_Tarihi</code>, 
+      <code>İlk_Oluşturma</code>, <code>Kesinleşen_Sipariş_Tarihi</code>,
       <code>Siparişe_Döndü_Mü</code> vb.
     </label>
     <input type="file" id="fileInput" accept=".xlsx,.xls" />
@@ -363,6 +428,9 @@
         <button type="button" class="multi-select-toggle">Tümü</button>
         <div class="multi-select-menu"></div>
       </div>
+    </div>
+    <div class="filter-group filter-actions">
+      <button type="button" class="clear-filters-btn" id="clearFiltersBtn">Hepsini temizle</button>
     </div>
   </div>
 
@@ -419,16 +487,18 @@
     </div>
   </div>
 
-  <!-- Organizasyon Tipi & Kapak Programı kârlılık tabloları -->
-  <div class="layout" style="margin-top: 20px;">
+  <!-- Satış noktası & Kapak Programı kârlılık tabloları -->
+  <div class="layout layout-full" style="margin-top: 20px;">
     <div class="card">
       <div class="card-header">
-        <div class="card-title">Organizasyon Tipi Bazlı Kârlılık</div>
-        <div class="badge">Organizasyon_Tipi</div>
+        <div class="card-title">Satış Noktası Bazlı Kârlılık</div>
+        <div class="badge">Organizasyon (M)</div>
       </div>
-      <table class="table" id="organizationTypeTable">
-        <!-- JS ile doldurulacak -->
-      </table>
+      <div class="table-scroll rows-5">
+        <table class="table" id="salesPointTable">
+          <!-- JS ile doldurulacak -->
+        </table>
+      </div>
     </div>
 
     <div class="card">
@@ -436,9 +506,11 @@
         <div class="card-title">Kapak Programı Bazlı Kârlılık</div>
         <div class="badge">Kapak_Programı (U)</div>
       </div>
-      <table class="table" id="kapakProgramTable">
-        <!-- JS ile doldurulacak -->
-      </table>
+      <div class="table-scroll rows-10">
+        <table class="table" id="kapakProgramTable">
+          <!-- JS ile doldurulacak -->
+        </table>
+      </div>
     </div>
   </div>
 
@@ -477,13 +549,14 @@
     const kpiGrid = document.getElementById('kpiGrid');
     const usageTable = document.getElementById('usageTable');
     const projectTypeTable = document.getElementById('projectTypeTable');
-    const organizationTypeTable = document.getElementById('organizationTypeTable');
+    const salesPointTable = document.getElementById('salesPointTable');
     const kapakProgramTable = document.getElementById('kapakProgramTable');
     const conversionUsageTable = document.getElementById('conversionUsageTable');
     const conversionChannelTable = document.getElementById('conversionChannelTable');
 
     const startMonthInput = document.getElementById('startMonth');
     const endMonthInput = document.getElementById('endMonth');
+    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
 
     const PROJECT_TYPE_OPTIONS = ['Perakende', 'Toplu İş', 'Teşhir', 'Reklamasyon'];
 
@@ -503,7 +576,7 @@
       'Kullanım': ['Kullanım', 'Kullanim', 'KULLANIM'],
       'Proje_Durumu': ['Proje_Durumu', 'Proje Durumu', 'PROJE_DURUMU'],
       'Proje_Türü': ['Proje_Türü', 'Proje Turu', 'Proje Türü', 'PROJE_TURU'],
-      'Organizasyon_Tipi': ['Organizasyon_Tipi', 'Organizasyon Tipi', 'ORGANIZASYON_TIPI'],
+      'Organizasyon': ['Organizasyon', 'ORGANIZASYON', 'Organizasyon_Tipi', 'Organizasyon Tipi', 'ORGANIZASYON_TIPI', 'Satış Noktası', 'Satis Noktasi'],
       'Kapak_Programı': ['Kapak_Programı', 'Kapak Programı', 'Kapak Programi'],
       'Kesinleşen_Sipariş_Tarihi': ['Kesinleşen_Sipariş_Tarihi', 'Kesinlesen_Siparis_Tarihi', 'Kesinleşen Sipariş Tarihi'],
       'İlk_Oluşturma': ['İlk_Oluşturma', 'Ilk_Olusturma', 'İlk Oluşturma'],
@@ -543,6 +616,18 @@
     fileInput.addEventListener('change', handleFile, false);
     startMonthInput.addEventListener('change', () => processAndRender());
     endMonthInput.addEventListener('change', () => processAndRender());
+    if (clearFiltersBtn) {
+      clearFiltersBtn.addEventListener('click', () => {
+        startMonthInput.value = '';
+        endMonthInput.value = '';
+        Object.values(multiSelects).forEach(ms => {
+          if (ms && typeof ms.selectAll === 'function') {
+            ms.selectAll(false);
+          }
+        });
+        processAndRender();
+      });
+    }
 
     function handleFile(event) {
       const file = event.target.files[0];
@@ -674,6 +759,13 @@
         },
         isAllSelected() {
           return selected.size === options.length || options.length === 0;
+        },
+        selectAll(shouldNotify = true) {
+          selected = new Set(options);
+          renderMenu();
+          if (shouldNotify) {
+            notifyChange();
+          }
         }
       };
     }
@@ -800,7 +892,7 @@
         kpiGrid.innerHTML = '';
         usageTable.innerHTML = '';
         projectTypeTable.innerHTML = '';
-        organizationTypeTable.innerHTML = '';
+        salesPointTable.innerHTML = '';
         kapakProgramTable.innerHTML = '';
         conversionUsageTable.innerHTML = '';
         conversionChannelTable.innerHTML = '';
@@ -820,7 +912,7 @@
       const byChannel = {};
       const byUsage = {};
       const byProjectType = {};
-      const byOrganizationType = {};
+      const bySalesPoint = {};
       const byKapakProgram = {};
 
       data.forEach(row => {
@@ -874,14 +966,14 @@
         byProjectType[pType].total++;
         if (isOrder) byProjectType[pType].orders++;
 
-        const orgType = getTextValue(row, 'Organizasyon_Tipi') || 'Belirsiz';
-        if (!byOrganizationType[orgType]) {
-          byOrganizationType[orgType] = { revenue: 0, cost: 0, orders: 0, total: 0 };
+        const salesPoint = getTextValue(row, 'Organizasyon') || 'Belirsiz';
+        if (!bySalesPoint[salesPoint]) {
+          bySalesPoint[salesPoint] = { revenue: 0, cost: 0, orders: 0, total: 0 };
         }
-        byOrganizationType[orgType].revenue += revenue;
-        byOrganizationType[orgType].cost += cost;
-        byOrganizationType[orgType].total++;
-        if (isOrder) byOrganizationType[orgType].orders++;
+        bySalesPoint[salesPoint].revenue += revenue;
+        bySalesPoint[salesPoint].cost += cost;
+        bySalesPoint[salesPoint].total++;
+        if (isOrder) bySalesPoint[salesPoint].orders++;
 
         const kapak = getTextValue(row, 'Kapak_Programı') || 'Belirsiz';
         if (!byKapakProgram[kapak]) {
@@ -914,7 +1006,7 @@
       renderChannelRevenueChart(byChannel);
       renderUsageTable(byUsage);
       renderProjectTypeTable(byProjectType);
-      renderOrganizationTypeTable(byOrganizationType);
+      renderSalesPointTable(bySalesPoint);
       renderKapakProgramTable(byKapakProgram);
       renderConversionUsageTable(byUsage);
       renderConversionChannelTable(byChannel);
@@ -1120,14 +1212,14 @@
       projectTypeTable.innerHTML = html;
     }
 
-    function renderOrganizationTypeTable(byOrganizationType) {
-      const entries = Object.entries(byOrganizationType)
+    function renderSalesPointTable(bySalesPoint) {
+      const entries = Object.entries(bySalesPoint)
         .sort((a, b) => b[1].revenue - a[1].revenue);
 
       let html = `
         <thead>
           <tr>
-            <th>Organizasyon Tipi</th>
+            <th>Satış Noktası</th>
             <th>Ciro</th>
             <th>Brüt Kâr</th>
             <th>Brüt Marj</th>
@@ -1137,12 +1229,12 @@
         <tbody>
       `;
 
-      entries.forEach(([orgType, obj]) => {
+      entries.forEach(([salesPoint, obj]) => {
         const profit = obj.revenue - obj.cost;
         const margin = obj.revenue > 0 ? profit / obj.revenue : 0;
         html += `
           <tr>
-            <td>${orgType}</td>
+            <td>${salesPoint}</td>
             <td>${formatCurrency(obj.revenue)}</td>
             <td>${formatCurrency(profit)}</td>
             <td>${formatPercent(margin)}</td>
@@ -1152,7 +1244,7 @@
       });
 
       html += '</tbody>';
-      organizationTypeTable.innerHTML = html;
+      salesPointTable.innerHTML = html;
     }
 
     function renderKapakProgramTable(byKapakProgram) {
