@@ -9,12 +9,14 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
-      --bg: #f5f5f7;
-      --card-bg: #ffffff;
-      --border: #e0e0e0;
-      --text-main: #111111;
-      --text-muted: #666666;
-      --accent: #2f5b4a; /* zeytin-yeşili ton */
+      --bg: linear-gradient(135deg, #eff4ff, #e2e8f5);
+      --card-bg: #edf2fd;
+      --text-main: #1f2a44;
+      --text-muted: #6b7a99;
+      --accent: #5b6fd6;
+      --accent-soft: rgba(91, 111, 214, 0.12);
+      --shadow-light: rgba(255, 255, 255, 0.9);
+      --shadow-dark: rgba(163, 177, 198, 0.6);
     }
     * {
       box-sizing: border-box;
@@ -22,44 +24,82 @@
       padding: 0;
     }
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      font-family: 'Poppins', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
       background: var(--bg);
       color: var(--text-main);
-      padding: 24px;
+      min-height: 100vh;
+      padding: 32px;
     }
-    h1 {
-      font-size: 28px;
-      margin-bottom: 8px;
-      letter-spacing: 0.02em;
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
     }
-    .subtitle {
-      font-size: 14px;
-      color: var(--text-muted);
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 24px;
     }
-    .upload-area {
-      border: 1px dashed var(--border);
-      background: #fafafa;
-      padding: 16px 20px;
-      border-radius: 12px;
+    .eyebrow {
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5em;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 36px;
+      letter-spacing: 0.04em;
+      margin-bottom: 12px;
+    }
+    .subtitle {
+      font-size: 15px;
+      color: var(--text-muted);
+      max-width: 760px;
+      line-height: 1.6;
+    }
+    .header-chip {
+      width: 82px;
+      height: 82px;
+      border-radius: 28px;
+      background: var(--card-bg);
+      box-shadow: -12px -12px 24px var(--shadow-light), 12px 12px 28px var(--shadow-dark);
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 16px;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .upload-area {
+      background: var(--card-bg);
+      padding: 20px 24px;
+      border-radius: 28px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      box-shadow: -18px -18px 30px var(--shadow-light), 18px 18px 35px var(--shadow-dark);
+      border: none;
     }
     .upload-area label {
       font-size: 14px;
       color: var(--text-muted);
+      line-height: 1.5;
     }
     input[type="file"] {
       font-size: 13px;
+      color: var(--text-main);
     }
     .filters {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-      margin-bottom: 16px;
+      gap: 18px;
+      margin-bottom: 28px;
+      background: var(--card-bg);
+      padding: 24px;
+      border-radius: 30px;
+      box-shadow: -18px -18px 30px var(--shadow-light), 18px 18px 35px var(--shadow-dark);
     }
     @media (max-width: 960px) {
       .filters {
@@ -75,24 +115,24 @@
       font-size: 12px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
     }
     .filter-label {
       font-size: 11px;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.3em;
       color: var(--text-muted);
     }
     .filter-group input[type="month"],
-    .filter-group select {
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      padding: 6px 8px;
-      font-size: 12px;
-      background: #fff;
-    }
-    .filter-group select[multiple] {
-      height: 80px;
+    .filter-group select,
+    .multi-select-toggle {
+      border-radius: 16px;
+      border: none;
+      padding: 10px 14px;
+      font-size: 13px;
+      background: var(--card-bg);
+      box-shadow: inset -6px -6px 12px var(--shadow-light), inset 6px 6px 12px rgba(163, 177, 198, 0.4);
+      color: var(--text-main);
     }
     .multi-select {
       position: relative;
@@ -100,33 +140,30 @@
     .multi-select-toggle {
       width: 100%;
       text-align: left;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: #fff;
-      padding: 6px 8px;
-      font-size: 12px;
-      color: var(--text-main);
       cursor: pointer;
+      transition: box-shadow 0.2s ease;
     }
     .multi-select-toggle:after {
       content: '▾';
       float: right;
       color: var(--text-muted);
     }
+    .multi-select.open .multi-select-toggle {
+      box-shadow: inset 6px 6px 14px rgba(163, 177, 198, 0.55), inset -6px -6px 14px rgba(255, 255, 255, 0.8);
+    }
     .multi-select-menu {
       position: absolute;
-      top: calc(100% + 4px);
+      top: calc(100% + 6px);
       left: 0;
       width: 100%;
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
-      padding: 8px;
-      max-height: 220px;
+      background: var(--card-bg);
+      border-radius: 20px;
+      box-shadow: -12px -12px 24px var(--shadow-light), 12px 12px 28px var(--shadow-dark);
+      padding: 10px;
+      max-height: 240px;
       overflow-y: auto;
       display: none;
-      z-index: 10;
+      z-index: 20;
     }
     .multi-select.open .multi-select-menu {
       display: block;
@@ -134,18 +171,18 @@
     .multi-select-option {
       display: flex;
       align-items: center;
-      gap: 6px;
-      font-size: 12px;
+      gap: 8px;
+      font-size: 13px;
       color: var(--text-main);
-      padding: 4px 2px;
+      padding: 6px 4px;
     }
     .multi-select-option input {
       accent-color: var(--accent);
     }
     .layout {
       display: grid;
-      grid-template-columns: minmax(0, 1.8fr) minmax(0, 1.2fr);
-      gap: 20px;
+      grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+      gap: 24px;
       align-items: flex-start;
     }
     @media (max-width: 960px) {
@@ -155,38 +192,37 @@
     }
     .card {
       background: var(--card-bg);
-      border-radius: 16px;
-      border: 1px solid var(--border);
-      padding: 16px 18px;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.02);
+      border-radius: 32px;
+      padding: 24px 28px;
+      box-shadow: -22px -22px 40px var(--shadow-light), 22px 22px 40px var(--shadow-dark);
     }
     .card-header {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
-      margin-bottom: 12px;
+      margin-bottom: 16px;
     }
     .card-title {
-      font-size: 14px;
+      font-size: 16px;
       font-weight: 600;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
       color: var(--text-muted);
     }
     .badge {
-      font-size: 11px;
+      font-size: 12px;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.2em;
       border-radius: 999px;
-      border: 1px solid var(--border);
-      padding: 3px 8px;
-      color: var(--text-muted);
+      padding: 6px 12px;
+      color: var(--accent);
+      background: var(--accent-soft);
     }
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-      margin-bottom: 20px;
+      gap: 18px;
+      margin-bottom: 28px;
     }
     @media (max-width: 1200px) {
       .kpi-grid {
@@ -200,25 +236,25 @@
     }
     .kpi-card {
       background: var(--card-bg);
-      border-radius: 14px;
-      border: 1px solid var(--border);
-      padding: 10px 12px;
+      border-radius: 24px;
+      padding: 18px 20px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
+      box-shadow: -14px -14px 24px var(--shadow-light), 14px 14px 30px var(--shadow-dark);
     }
     .kpi-label {
-      font-size: 11px;
+      font-size: 12px;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.2em;
       color: var(--text-muted);
     }
     .kpi-value {
-      font-size: 18px;
+      font-size: 24px;
       font-weight: 600;
     }
     .kpi-sub {
-      font-size: 11px;
+      font-size: 12px;
       color: var(--text-muted);
     }
     canvas {
@@ -228,31 +264,37 @@
     .table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 12px;
-      margin-top: 4px;
+      font-size: 13px;
+      margin-top: 8px;
     }
     .table th,
     .table td {
-      padding: 6px 4px;
+      padding: 10px 6px;
       text-align: left;
-      border-bottom: 1px solid #f0f0f0;
     }
     .table th {
       font-size: 11px;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.2em;
       color: var(--text-muted);
     }
+    .table tbody tr {
+      border-radius: 16px;
+    }
+    .table tbody tr:nth-child(odd) {
+      background: rgba(255, 255, 255, 0.25);
+    }
     .table tbody tr:nth-child(even) {
-      background: #fafafa;
+      background: rgba(91, 111, 214, 0.06);
     }
     .muted {
       color: var(--text-muted);
-      font-size: 12px;
+      font-size: 13px;
+      margin-top: 12px;
     }
     .status {
-      font-size: 11px;
-      margin-top: 4px;
+      font-size: 12px;
+      margin-top: 8px;
       color: var(--text-muted);
     }
     .status span {
@@ -262,11 +304,17 @@
   </style>
 </head>
 <body>
-
-  <h1>Satış Performans Dashboard</h1>
-  <p class="subtitle">
-    Aşağıya ham satış verisi Excel (xlsx) dosyanı yükle; metrikler, grafikler ve tablolar filtrelere göre otomatik hesaplansın.
-  </p>
+  <div class="page">
+    <div class="page-header">
+      <div>
+        <p class="eyebrow">KPI Dashboard</p>
+        <h1>Satış Performans Dashboard</h1>
+        <p class="subtitle">
+          Aşağıya ham satış verisi Excel (xlsx) dosyanı yükle; metrikler, grafikler ve tablolar filtrelere göre otomatik hesaplansın.
+        </p>
+      </div>
+      <div class="header-chip">19</div>
+    </div>
 
   <div class="upload-area">
     <label><strong>Dosya:</strong> İlgili sayfada sütun başlıkları şu şekilde olmalı:
@@ -417,6 +465,8 @@
     </div>
   </div>
 
+  </div>
+
   <script>
     let rawData = [];
     let monthlyRevenueChart = null;
@@ -445,6 +495,50 @@
     };
 
     multiSelects.projectType.setOptions(PROJECT_TYPE_OPTIONS);
+
+    const COLUMN_ALIASES = {
+      'Net Total': ['Net Total', 'Net_Total', 'NetTotal', 'NET TOTAL'],
+      'Alış Total': ['Alış Total', 'Alis Total', 'Alış_Total', 'Alis_Total', 'ALIS TOTAL'],
+      'Kanal': ['Kanal', 'KANAL', ' Kanal'],
+      'Kullanım': ['Kullanım', 'Kullanim', 'KULLANIM'],
+      'Proje_Durumu': ['Proje_Durumu', 'Proje Durumu', 'PROJE_DURUMU'],
+      'Proje_Türü': ['Proje_Türü', 'Proje Turu', 'Proje Türü', 'PROJE_TURU'],
+      'Organizasyon_Tipi': ['Organizasyon_Tipi', 'Organizasyon Tipi', 'ORGANIZASYON_TIPI'],
+      'Kapak_Programı': ['Kapak_Programı', 'Kapak Programı', 'Kapak Programi'],
+      'Kesinleşen_Sipariş_Tarihi': ['Kesinleşen_Sipariş_Tarihi', 'Kesinlesen_Siparis_Tarihi', 'Kesinleşen Sipariş Tarihi'],
+      'İlk_Oluşturma': ['İlk_Oluşturma', 'Ilk_Olusturma', 'İlk Oluşturma'],
+      'Siparis Durumu': ['Siparis Durumu', 'Sipariş Durumu', 'Siparis_Durumu', 'Siparişe_Döndü_Mü']
+    };
+
+    function normalizeKeyName(name) {
+      return String(name || '').toLocaleLowerCase('tr-TR').replace(/[\s_]/g, '');
+    }
+
+    function getColumnValue(row, columnName) {
+      if (!row) return null;
+      const candidates = COLUMN_ALIASES[columnName] || [columnName];
+      for (const candidate of candidates) {
+        if (candidate in row) {
+          return row[candidate];
+        }
+      }
+      const target = normalizeKeyName(columnName);
+      for (const key in row) {
+        if (normalizeKeyName(key) === target) {
+          return row[key];
+        }
+      }
+      return null;
+    }
+
+    function normalizeTextValue(val) {
+      if (val === null || val === undefined) return '';
+      return String(val).trim();
+    }
+
+    function getTextValue(row, columnName) {
+      return normalizeTextValue(getColumnValue(row, columnName));
+    }
 
     fileInput.addEventListener('change', handleFile, false);
     startMonthInput.addEventListener('change', () => processAndRender());
@@ -478,9 +572,12 @@
       const projectStatusSet = new Set();
 
       rawData.forEach(row => {
-        if (row['Kullanım']) usageSet.add(String(row['Kullanım']).trim());
-        if (row['Kanal']) channelSet.add(String(row['Kanal']).trim());
-        if (row['Proje_Durumu']) projectStatusSet.add(String(row['Proje_Durumu']).trim());
+        const usage = getTextValue(row, 'Kullanım');
+        const channel = getTextValue(row, 'Kanal');
+        const projectStatus = getTextValue(row, 'Proje_Durumu');
+        if (usage) usageSet.add(usage);
+        if (channel) channelSet.add(channel);
+        if (projectStatus) projectStatusSet.add(projectStatus);
       });
 
       multiSelects.usage.setOptions(Array.from(usageSet).sort());
@@ -614,8 +711,8 @@
     }
 
     function getEffectiveDate(row) {
-      const finalized = getDate(row['Kesinleşen_Sipariş_Tarihi']);
-      const created = getDate(row['İlk_Oluşturma']);
+      const finalized = getDate(getColumnValue(row, 'Kesinleşen_Sipariş_Tarihi'));
+      const created = getDate(getColumnValue(row, 'İlk_Oluşturma'));
       return finalized || created || null;
     }
 
@@ -683,10 +780,10 @@
           if (startYM !== null || endYM !== null) return false;
         }
 
-        const usage = row['Kullanım'] ? String(row['Kullanım']).trim() : '';
-        const channel = row['Kanal'] ? String(row['Kanal']).trim() : '';
-        const projectStatus = row['Proje_Durumu'] ? String(row['Proje_Durumu']).trim() : '';
-        const projectType = row['Proje_Türü'] ? String(row['Proje_Türü']).trim() : '';
+        const usage = getTextValue(row, 'Kullanım');
+        const channel = getTextValue(row, 'Kanal');
+        const projectStatus = getTextValue(row, 'Proje_Durumu');
+        const projectType = getTextValue(row, 'Proje_Türü');
 
         if (usageFilterActive && (!usage || !usageSelectedSet.has(usage))) return false;
         if (channelFilterActive && (!channel || !channelSelectedSet.has(channel))) return false;
@@ -727,9 +824,9 @@
       const byKapakProgram = {};
 
       data.forEach(row => {
-        const revenue = parseNumber(row['Net Total']);
-        const cost = parseNumber(row['Alış Total']);
-        const isOrder = isOrderFromZ(row['Siparis Durumu']); // Z sütunu
+        const revenue = parseNumber(getColumnValue(row, 'Net Total'));
+        const cost = parseNumber(getColumnValue(row, 'Alış Total'));
+        const isOrder = isOrderFromZ(getColumnValue(row, 'Siparis Durumu'));
 
         if (revenue !== 0 || cost !== 0) {
           rowsWithMoney++;
@@ -752,7 +849,7 @@
           if (isOrder) byMonth[monthKey].orders++;
         }
 
-        const channel = row['Kanal'] ? String(row['Kanal']).trim() : 'Belirsiz';
+        const channel = getTextValue(row, 'Kanal') || 'Belirsiz';
         if (!byChannel[channel]) {
           byChannel[channel] = { revenue: 0, orders: 0, total: 0 };
         }
@@ -760,7 +857,7 @@
         byChannel[channel].total++;
         if (isOrder) byChannel[channel].orders++;
 
-        const usage = row['Kullanım'] ? String(row['Kullanım']).trim() : 'Belirsiz';
+        const usage = getTextValue(row, 'Kullanım') || 'Belirsiz';
         if (!byUsage[usage]) {
           byUsage[usage] = { revenue: 0, cost: 0, orders: 0, total: 0 };
         }
@@ -769,7 +866,7 @@
         byUsage[usage].total++;
         if (isOrder) byUsage[usage].orders++;
 
-        const pType = row['Proje_Türü'] ? String(row['Proje_Türü']).trim() : 'Belirsiz';
+        const pType = getTextValue(row, 'Proje_Türü') || 'Belirsiz';
         if (!byProjectType[pType]) {
           byProjectType[pType] = { revenue: 0, orders: 0, total: 0 };
         }
@@ -777,7 +874,7 @@
         byProjectType[pType].total++;
         if (isOrder) byProjectType[pType].orders++;
 
-        const orgType = row['Organizasyon_Tipi'] ? String(row['Organizasyon_Tipi']).trim() : 'Belirsiz';
+        const orgType = getTextValue(row, 'Organizasyon_Tipi') || 'Belirsiz';
         if (!byOrganizationType[orgType]) {
           byOrganizationType[orgType] = { revenue: 0, cost: 0, orders: 0, total: 0 };
         }
@@ -786,7 +883,7 @@
         byOrganizationType[orgType].total++;
         if (isOrder) byOrganizationType[orgType].orders++;
 
-        const kapak = row['Kapak_Programı'] ? String(row['Kapak_Programı']).trim() : 'Belirsiz';
+        const kapak = getTextValue(row, 'Kapak_Programı') || 'Belirsiz';
         if (!byKapakProgram[kapak]) {
           byKapakProgram[kapak] = { revenue: 0, cost: 0, orders: 0, total: 0 };
         }
