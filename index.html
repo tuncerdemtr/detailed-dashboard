@@ -94,6 +94,54 @@
     .filter-group select[multiple] {
       height: 80px;
     }
+    .multi-select {
+      position: relative;
+    }
+    .multi-select-toggle {
+      width: 100%;
+      text-align: left;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #fff;
+      padding: 6px 8px;
+      font-size: 12px;
+      color: var(--text-main);
+      cursor: pointer;
+    }
+    .multi-select-toggle:after {
+      content: '▾';
+      float: right;
+      color: var(--text-muted);
+    }
+    .multi-select-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      width: 100%;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+      padding: 8px;
+      max-height: 220px;
+      overflow-y: auto;
+      display: none;
+      z-index: 10;
+    }
+    .multi-select.open .multi-select-menu {
+      display: block;
+    }
+    .multi-select-option {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-main);
+      padding: 4px 2px;
+    }
+    .multi-select-option input {
+      accent-color: var(--accent);
+    }
     .layout {
       display: grid;
       grid-template-columns: minmax(0, 1.8fr) minmax(0, 1.2fr);
@@ -242,15 +290,31 @@
     </div>
     <div class="filter-group">
       <div class="filter-label">Kullanım (K sütunu)</div>
-      <select id="usageFilter" multiple></select>
+      <div class="multi-select" id="usageMultiSelect">
+        <button type="button" class="multi-select-toggle">Tümü</button>
+        <div class="multi-select-menu"></div>
+      </div>
     </div>
     <div class="filter-group">
       <div class="filter-label">Kanal (O sütunu)</div>
-      <select id="channelFilter" multiple></select>
+      <div class="multi-select" id="channelMultiSelect">
+        <button type="button" class="multi-select-toggle">Tümü</button>
+        <div class="multi-select-menu"></div>
+      </div>
     </div>
     <div class="filter-group">
       <div class="filter-label">Proje Durumu (S sütunu)</div>
-      <select id="projectStatusFilter" multiple></select>
+      <div class="multi-select" id="projectStatusMultiSelect">
+        <button type="button" class="multi-select-toggle">Tümü</button>
+        <div class="multi-select-menu"></div>
+      </div>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Proje Türü (I sütunu)</div>
+      <div class="multi-select" id="projectTypeMultiSelect">
+        <button type="button" class="multi-select-toggle">Tümü</button>
+        <div class="multi-select-menu"></div>
+      </div>
     </div>
   </div>
 
@@ -370,16 +434,21 @@
 
     const startMonthInput = document.getElementById('startMonth');
     const endMonthInput = document.getElementById('endMonth');
-    const usageFilter = document.getElementById('usageFilter');
-    const channelFilter = document.getElementById('channelFilter');
-    const projectStatusFilter = document.getElementById('projectStatusFilter');
+
+    const PROJECT_TYPE_OPTIONS = ['Perakende', 'Toplu İş', 'Teşhir', 'Reklamasyon'];
+
+    const multiSelects = {
+      usage: initMultiSelect('usageMultiSelect', processAndRender),
+      channel: initMultiSelect('channelMultiSelect', processAndRender),
+      projectStatus: initMultiSelect('projectStatusMultiSelect', processAndRender),
+      projectType: initMultiSelect('projectTypeMultiSelect', processAndRender)
+    };
+
+    multiSelects.projectType.setOptions(PROJECT_TYPE_OPTIONS);
 
     fileInput.addEventListener('change', handleFile, false);
     startMonthInput.addEventListener('change', () => processAndRender());
     endMonthInput.addEventListener('change', () => processAndRender());
-    usageFilter.addEventListener('change', () => processAndRender());
-    channelFilter.addEventListener('change', () => processAndRender());
-    projectStatusFilter.addEventListener('change', () => processAndRender());
 
     function handleFile(event) {
       const file = event.target.files[0];
@@ -414,30 +483,102 @@
         if (row['Proje_Durumu']) projectStatusSet.add(String(row['Proje_Durumu']).trim());
       });
 
-      usageFilter.innerHTML = '';
-      channelFilter.innerHTML = '';
-      projectStatusFilter.innerHTML = '';
+      multiSelects.usage.setOptions(Array.from(usageSet).sort());
+      multiSelects.channel.setOptions(Array.from(channelSet).sort());
+      multiSelects.projectStatus.setOptions(Array.from(projectStatusSet).sort());
+    }
 
-      Array.from(usageSet).sort().forEach(val => {
-        const opt = document.createElement('option');
-        opt.value = val;
-        opt.textContent = val;
-        usageFilter.appendChild(opt);
+    function initMultiSelect(id, onChange) {
+      const container = document.getElementById(id);
+      const toggle = container.querySelector('.multi-select-toggle');
+      const menu = container.querySelector('.multi-select-menu');
+      let options = [];
+      let selected = new Set();
+
+      function updateToggleLabel() {
+        if (options.length === 0) {
+          toggle.textContent = 'Seçenek yok';
+          toggle.disabled = true;
+          return;
+        }
+        toggle.disabled = false;
+        if (selected.size === options.length) {
+          toggle.textContent = 'Tümü';
+        } else if (selected.size === 0) {
+          toggle.textContent = 'Seçiniz';
+        } else {
+          toggle.textContent = `${selected.size} seçili`;
+        }
+      }
+
+      function notifyChange() {
+        if (typeof onChange === 'function') {
+          onChange();
+        }
+      }
+
+      function renderMenu() {
+        menu.innerHTML = '';
+        if (!options.length) {
+          const empty = document.createElement('div');
+          empty.className = 'multi-select-option muted';
+          empty.textContent = 'Seçenek yok';
+          menu.appendChild(empty);
+          updateToggleLabel();
+          return;
+        }
+
+        options.forEach(val => {
+          const label = document.createElement('label');
+          label.className = 'multi-select-option';
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.value = val;
+          checkbox.checked = selected.has(val);
+          checkbox.addEventListener('change', () => {
+            if (checkbox.checked) {
+              selected.add(val);
+            } else {
+              selected.delete(val);
+            }
+            updateToggleLabel();
+            notifyChange();
+          });
+          label.appendChild(checkbox);
+          const span = document.createElement('span');
+          span.textContent = val;
+          label.appendChild(span);
+          menu.appendChild(label);
+        });
+        updateToggleLabel();
+      }
+
+      toggle.addEventListener('click', (event) => {
+        event.stopPropagation();
+        container.classList.toggle('open');
       });
 
-      Array.from(channelSet).sort().forEach(val => {
-        const opt = document.createElement('option');
-        opt.value = val;
-        opt.textContent = val;
-        channelFilter.appendChild(opt);
+      document.addEventListener('click', (event) => {
+        if (!container.contains(event.target)) {
+          container.classList.remove('open');
+        }
       });
 
-      Array.from(projectStatusSet).sort().forEach(val => {
-        const opt = document.createElement('option');
-        opt.value = val;
-        opt.textContent = val;
-        projectStatusFilter.appendChild(opt);
-      });
+      renderMenu();
+
+      return {
+        setOptions(newOptions) {
+          options = newOptions;
+          selected = new Set(newOptions);
+          renderMenu();
+        },
+        getSelected() {
+          return Array.from(selected);
+        },
+        isAllSelected() {
+          return selected.size === options.length || options.length === 0;
+        }
+      };
     }
 
     function parseNumber(val) {
@@ -499,14 +640,6 @@
       return (val * 100).toFixed(1) + ' %';
     }
 
-    function getSelectedValues(selectEl) {
-      const values = [];
-      for (const opt of selectEl.options) {
-        if (opt.selected) values.push(opt.value);
-      }
-      return values;
-    }
-
     function getFilteredData() {
       if (!rawData || rawData.length === 0) return [];
 
@@ -525,9 +658,20 @@
         endYM = y * 100 + m;
       }
 
-      const selectedUsage = getSelectedValues(usageFilter);
-      const selectedChannel = getSelectedValues(channelFilter);
-      const selectedProjectStatus = getSelectedValues(projectStatusFilter);
+      const usageValues = multiSelects.usage.getSelected();
+      const channelValues = multiSelects.channel.getSelected();
+      const projectStatusValues = multiSelects.projectStatus.getSelected();
+      const projectTypeValues = multiSelects.projectType.getSelected();
+
+      const usageSelectedSet = new Set(usageValues);
+      const channelSelectedSet = new Set(channelValues);
+      const projectStatusSelectedSet = new Set(projectStatusValues);
+      const projectTypeSelectedSet = new Set(projectTypeValues);
+
+      const usageFilterActive = !multiSelects.usage.isAllSelected();
+      const channelFilterActive = !multiSelects.channel.isAllSelected();
+      const projectStatusFilterActive = !multiSelects.projectStatus.isAllSelected();
+      const projectTypeFilterActive = !multiSelects.projectType.isAllSelected();
 
       return rawData.filter(row => {
         const d = getEffectiveDate(row);
@@ -539,20 +683,15 @@
           if (startYM !== null || endYM !== null) return false;
         }
 
-        if (selectedUsage.length > 0) {
-          const usage = row['Kullanım'] ? String(row['Kullanım']).trim() : '';
-          if (!selectedUsage.includes(usage)) return false;
-        }
+        const usage = row['Kullanım'] ? String(row['Kullanım']).trim() : '';
+        const channel = row['Kanal'] ? String(row['Kanal']).trim() : '';
+        const projectStatus = row['Proje_Durumu'] ? String(row['Proje_Durumu']).trim() : '';
+        const projectType = row['Proje_Türü'] ? String(row['Proje_Türü']).trim() : '';
 
-        if (selectedChannel.length > 0) {
-          const channel = row['Kanal'] ? String(row['Kanal']).trim() : '';
-          if (!selectedChannel.includes(channel)) return false;
-        }
-
-        if (selectedProjectStatus.length > 0) {
-          const pStatus = row['Proje_Durumu'] ? String(row['Proje_Durumu']).trim() : '';
-          if (!selectedProjectStatus.includes(pStatus)) return false;
-        }
+        if (usageFilterActive && (!usage || !usageSelectedSet.has(usage))) return false;
+        if (channelFilterActive && (!channel || !channelSelectedSet.has(channel))) return false;
+        if (projectStatusFilterActive && (!projectStatus || !projectStatusSelectedSet.has(projectStatus))) return false;
+        if (projectTypeFilterActive && (!projectType || !projectTypeSelectedSet.has(projectType))) return false;
 
         return true;
       });
