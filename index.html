@@ -453,10 +453,10 @@
       return 0;
     }
 
-    function normalizeYes(val) {
-      if (!val) return false;
-      const s = String(val).trim().toLowerCase();
-      return ['evet', 'yes', 'y', '1', 'true'].includes(s);
+    function isOrderFromZ(val) {
+      if (val === null || val === undefined) return false;
+      const n = Number(val);
+      return n === 1;
     }
 
     function getDate(val) {
@@ -590,7 +590,7 @@
       data.forEach(row => {
         const revenue = parseNumber(row['Net Total']);
         const cost = parseNumber(row['Alış Total']);
-        const isOrder = normalizeYes(row['Siparişe_Döndü_Mü']);
+        const isOrder = isOrderFromZ(row['Siparis Durumu']); // Z sütunu
 
         if (revenue !== 0 || cost !== 0) {
           rowsWithMoney++;
